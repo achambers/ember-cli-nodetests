@@ -30,7 +30,8 @@ module.exports = {
       { name: 'mocha', target: '3.1.2' },
       { name: 'mocha-jshint', target: '2.3.1' }
     ])
-    .then(updatePackageJsonTestScript.bind(this));
+    .then(updatePackageJsonTestScript.bind(this))
+    .then(updateJshintrc.bind(this));
   }
 };
 
@@ -45,5 +46,27 @@ function updatePackageJsonTestScript() {
       pkg.scripts.test = 'node tests/runner.js';
 
       return writeJSON(filePath, pkg, 'utf8');
+    });
+}
+
+function updateJshintrc() {
+  var filePath = path.join(this.project.root, 'tests/.jshintrc');
+  return readJSON(filePath, 'utf8')
+    .then(function(json) {
+      if (!json.predef) {
+        json.predef = [];
+      }
+
+      ['describe', 'beforeEach', 'afterEach', 'it'].forEach(function(token) {
+        if (json.predef.indexOf(token) === -1) {
+          json.predef.push(token);
+        }
+      });
+
+      return writeJSON(filePath, json, 'utf8');
+    }, function(error) {
+      if (error && error.code === 'ENOENT') { return; }
+
+      throw error;
     });
 }
